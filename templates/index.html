@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Crawler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .form-text {
+            color: #666;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .accordion {
+            margin: 1.5rem 0;
+        }
+        .accordion-button {
+            background-color: transparent;
+            color: #0d6efd;
+            font-weight: 500;
+            border: 1px solid #0d6efd;
+            border-radius: 8px !important;
+            padding: 0.75rem 1.25rem;
+        }
+        .accordion-button:not(.collapsed) {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+        }
+        .accordion-body {
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+        .filter-options {
+            background-color: transparent;
+            padding: 0;
+        }
+        .form-check {
+            margin-bottom: 0.5rem;
+        }
+        .form-check-label {
+            color: #333;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .preview-container {
+            display: none;
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            margin-top: 1rem;
+            height: 500px;
+            overflow-y: auto;
+        }
+        .preview-content {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .preview-content h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem 0;
+            color: #2c3e50;
+        }
+        .preview-content p {
+            margin-bottom: 1rem;
+        }
+        .preview-content ul {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        .preview-content li {
+            margin-bottom: 0.5rem;
+        }
+        .download-container {
+            margin-top: 2rem;
+        }
+        .download-container .row {
+            margin: 0 -0.5rem;
+        }
+        .download-container .btn {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 1rem;
+            color: #333;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .download-container .btn:hover {
+            background-color: #f8f9fa;
+            border-color: #ddd;
+            color: #333;
+        }
+        .download-container .btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        .status-container {
+            margin: 2rem 0;
+        }
+        .status-message {
+            background-color: #B8B5FF;
+            color: #333;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border: none;
+        }
+        .status-message .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress {
+            height: 8px;
+            background-color: #E8E8E8;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background-color: #4A47E7;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Website Analyzer</h1>
+        <form id="crawlerForm">
+            <div class="mb-3">
+                <label for="url" class="form-label">Website URL</label>
+                <input type="url" class="form-control" id="url" name="url" required
+                       placeholder="https://example.com">
+            </div>
+
+            <div class="accordion" id="advancedSettings">
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#advancedSettingsContent">
+                            Advanced Settings
+                        </button>
+                    </h2>
+                    <div id="advancedSettingsContent" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="mb-3">
+                                <label for="maxDepth" class="form-label">Maximum Crawling Depth (1-10)</label>
+                                <input type="number" class="form-control" id="maxDepth" name="maxDepth"
+                                       min="1" max="10" value="3">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="allowedDomains" class="form-label">Allowed Domains</label>
+                                <input type="text" class="form-control" id="allowedDomains" name="allowedDomains"
+                                       placeholder="example.com, blog.example.com">
+                                <div class="form-text">Comma-separated list of allowed domains. Leave empty to allow all.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Content Filters</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterParagraphs" name="filters" value="p" checked>
+                                    <label class="form-check-label" for="filterParagraphs">Include Paragraphs</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterHeadings" name="filters" value="h" checked>
+                                    <label class="form-check-label" for="filterHeadings">Include Headings</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterLists" name="filters" value="l" checked>
+                                    <label class="form-check-label" for="filterLists">Include Lists</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                Start Crawling
+            </button>
+        </form>
+
+        <div class="status-container" style="display: none;">
+            <div class="status-message">
+                <div class="spinner"></div>
+                <span>Crawling...</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div class="progress-text">0% complete</div>
+        </div>
+
+        <div class="preview-container" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">AI Analysis</h5>
+                <a href="#" class="btn btn-sm btn-outline-primary download-analysis" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 2a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 14.293V2.5A.5.5 0 0 1 8 2z"/>
+                    </svg>
+                    Download Analysis
+                </a>
+            </div>
+            <div class="preview-content"></div>
+        </div>
+
+        <div class="download-container" style="display: none;">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="#" class="btn w-100 download-links">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 14.293V2.5A.5.5 0 0 1 8 2z"/>
+                        </svg>
+                        Download Links
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="#" class="btn w-100 download-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 14.293V2.5A.5.5 0 0 1 8 2z"/>
+                        </svg>
+                        Download Content
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const form = document.getElementById('crawlerForm');
+        const statusContainer = document.querySelector('.status-container');
+        const downloadContainer = document.querySelector('.download-container');
+        const previewContainer = document.querySelector('.preview-container');
+        const progressBar = document.querySelector('.progress-bar');
+        const statusMessage = document.querySelector('.status-message');
+        const downloadLinksBtn = document.querySelector('.download-links');
+        const downloadContentBtn = document.querySelector('.download-content');
+        const previewContent = document.querySelector('.preview-content');
+        const downloadAnalysisBtn = document.querySelector('.download-analysis');
+        let currentTaskId = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(form);
+            const filters = Array.from(document.querySelectorAll('input[name="filters"]:checked'))
+                                .map(cb => cb.value)
+                                .join(',');
+            formData.append('filters', filters);
+            
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Reset UI
+            submitBtn.disabled = true;
+            statusContainer.style.display = 'block';
+            downloadContainer.style.display = 'none';
+            previewContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            statusMessage.textContent = 'Starting crawler...';
+            
+            try {
+                const response = await fetch('/crawl', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    currentTaskId = data.task_id;
+                    pollStatus();
+                } else {
+                    throw new Error(data.error || 'Failed to start crawling');
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                statusMessage.className = 'status-message alert alert-danger';
+                submitBtn.disabled = false;
+            }
+        });
+
+        async function pollStatus() {
+            if (!currentTaskId) return;
+
+            try {
+                const response = await fetch(`/status/${currentTaskId}`);
+                const data = await response.json();
+
+                if (data.status === 'running') {
+                    const progress = data.progress || 0;
+                    progressBar.style.width = `${progress}%`;
+                    document.querySelector('.progress-text').textContent = `${progress}% complete`;
+                    statusMessage.innerHTML = '<div class="spinner"></div><span>Crawling...</span>';
+                    setTimeout(pollStatus, 1000);
+                } else if (data.status === 'completed') {
+                    progressBar.style.width = '100%';
+                    document.querySelector('.progress-text').textContent = '100% complete';
+                    statusMessage.innerHTML = '<span>Crawling completed successfully!</span>';
+                    statusMessage.style.backgroundColor = '#B8B5FF';
+                    
+                    // Show AI analysis
+                    if (data.analysis) {
+                        previewContainer.style.display = 'block';
+                        previewContent.innerHTML = data.analysis.replace(/\n/g, '<br>');
+                        
+                        // Show download button for analysis if available
+                        if (data.analysis_file) {
+                            downloadAnalysisBtn.style.display = 'block';
+                            downloadAnalysisBtn.href = `/download/${data.analysis_file}`;
+                        }
+                    }
+                    
+                    // Show download buttons
+                    downloadContainer.style.display = 'block';
+                    downloadLinksBtn.href = `/download/${data.links_file}`;
+                    downloadLinksBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 14.293V2.5A.5.5 0 0 1 8 2z"/>
+                        </svg>
+                        Download ${data.links_file}
+                    `;
+                    
+                    downloadContentBtn.href = `/download/${data.content_file}`;
+                    downloadContentBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 14.293V2.5A.5.5 0 0 1 8 2z"/>
+                        </svg>
+                        Download ${data.content_file}
+                    `;
+                    
+                    document.getElementById('submitBtn').disabled = false;
+                } else if (data.status === 'error') {
+                    statusMessage.innerHTML = `<span>Error: ${data.error}</span>`;
+                    statusMessage.style.backgroundColor = '#FFB6C1';
+                    document.querySelector('.progress-text').textContent = 'Failed';
+                    document.getElementById('submitBtn').disabled = false;
+                } else {
+                    setTimeout(pollStatus, 1000);
+                }
+            } catch (error) {
+                statusMessage.innerHTML = `<span>Error checking status: ${error.message}</span>`;
+                statusMessage.style.backgroundColor = '#FFB6C1';
+                document.querySelector('.progress-text').textContent = 'Failed';
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 
