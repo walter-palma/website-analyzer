@@ -92,39 +92,70 @@ def perform_crawl(url, output_filename, content_filename, task_id, max_depth=3, 
             crawl_status[task_id]['message'] = 'Processing content and generating analysis...'
 
             # Process content and generate AI analysis
-            main_content = ""
+            main_content = []
             about_page_content = None
             
+            print(f"Processing {len(content_map)} pages for analysis...")
+            
             for page_url, html_content in content_map.items():
+                print(f"Processing page: {page_url}")
                 soup = BeautifulSoup(html_content, "html.parser")
                 
                 # Remove unwanted elements
                 for script in soup(["script", "style"]):
                     script.decompose()
                 
-                # Extract text
-                text = soup.get_text()
-                
-                # Check if this is an about page
-                if 'about' in page_url.lower():
-                    about_page_content = text
+                # Get text content based on filters
+                if filters:
+                    allowed_tags = get_allowed_tags(filters.split(','))
+                    text = extract_filtered_content(soup, allowed_tags)
                 else:
-                    main_content += text + "\n\n"
-
-            # Generate AI analysis
-            analysis_result = analyze_website_content(main_content, about_page_content)
-            
-            if analysis_result['success']:
-                analysis_text = analysis_result['analysis']
+                    text = soup.get_text()
                 
-                # Save analysis to file
-                analysis_filename = f"{task_id}_analysis.txt"
-                analysis_path = os.path.join(app.config['UPLOAD_FOLDER'], analysis_filename)
-                with open(analysis_path, "w", encoding="utf-8") as f:
-                    f.write(format_analysis_for_download(analysis_text))
-            else:
-                analysis_text = "Error generating analysis: " + analysis_result.get('error', 'Unknown error')
+                # Clean up the text
+                lines = (line.strip() for line in text.splitlines())
+                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                text = '\n'.join(chunk for chunk in chunks if chunk)
+                
+                if text.strip():  # Only add non-empty content
+                    print(f"Found {len(text)} characters of content")
+                    # Check if this is an about page
+                    if 'about' in page_url.lower():
+                        print("Found about page content")
+                        about_page_content = text
+                    else:
+                        main_content.append(text)
+                else:
+                    print("No content found in page")
+
+            # Combine all main content
+            combined_content = '\n\n'.join(main_content)
+            print(f"Total content length: {len(combined_content)} characters")
+            print(f"About page content length: {len(about_page_content) if about_page_content else 0} characters")
+
+            if not combined_content.strip():
+                print("Warning: No content found to analyze!")
+                analysis_text = "Error: No content was found to analyze. The crawler may have been blocked or the page may be empty."
                 analysis_filename = None
+            else:
+                # Generate AI analysis
+                print("Sending content to AI analyzer...")
+                analysis_result = analyze_website_content(combined_content, about_page_content)
+                
+                if analysis_result['success']:
+                    analysis_text = analysis_result['analysis']
+                    print("AI analysis completed successfully")
+                    
+                    # Save analysis to file
+                    analysis_filename = f"{task_id}_analysis.txt"
+                    analysis_path = os.path.join(app.config['UPLOAD_FOLDER'], analysis_filename)
+                    with open(analysis_path, "w", encoding="utf-8") as f:
+                        f.write(format_analysis_for_download(analysis_text))
+                else:
+                    error_msg = analysis_result.get('error', 'Unknown error')
+                    print(f"AI analysis failed: {error_msg}")
+                    analysis_text = f"Error generating analysis: {error_msg}"
+                    analysis_filename = None
 
             # Save content
             content_path = os.path.join(app.config['UPLOAD_FOLDER'], content_filename)
@@ -137,7 +168,18 @@ def perform_crawl(url, output_filename, content_filename, task_id, max_depth=3, 
                         soup = BeautifulSoup(html_content, "html.parser")
                         for script in soup(["script", "style"]):
                             script.decompose()
-                        text = soup.get_text()
+                        
+                        if filters:
+                            allowed_tags = get_allowed_tags(filters.split(','))
+                            text = extract_filtered_content(soup, allowed_tags)
+                        else:
+                            text = soup.get_text()
+                            
+                        # Clean up the text
+                        lines = (line.strip() for line in text.splitlines())
+                        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                        text = '\n'.join(chunk for chunk in chunks if chunk)
+                        
                         f.write(f"URL: {page_url}\n")
                         f.write("-" * 80 + "\n")
                         f.write(text)

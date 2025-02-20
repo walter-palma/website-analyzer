@@ -59,15 +59,23 @@ def crawl_and_scrape(start_url, max_depth=3, current_depth=0, visited=None, driv
     content_map = {}
 
     try:
-        print(f"Fetching page content...")
+        print(f"Fetching page content for {start_url}...")
         driver.get(start_url)
         
         # Wait for page load with reduced timeout
-        wait = WebDriverWait(driver, 10)
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        try:
+            wait = WebDriverWait(driver, 10)
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            print("Page loaded successfully")
+        except Exception as e:
+            print(f"Warning: Timeout waiting for page load: {e}")
         
         page_source = driver.page_source
-        content_map[start_url] = page_source
+        if page_source:
+            print(f"Retrieved {len(page_source)} characters of HTML")
+            content_map[start_url] = page_source
+        else:
+            print("Warning: Empty page source received")
 
         # Parse with BeautifulSoup
         soup = BeautifulSoup(page_source, "html.parser")
